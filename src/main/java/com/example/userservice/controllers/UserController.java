@@ -1,19 +1,15 @@
 package com.example.userservice.controllers;
 
-import com.example.userservice.dtos.LoginRequestDto;
-import com.example.userservice.dtos.LogoutRequestDto;
-import com.example.userservice.dtos.UserRequestDto;
-import com.example.userservice.dtos.UserDto;
+import com.example.userservice.dtos.*;
+import com.example.userservice.exceptions.InvalidPasswordException;
 import com.example.userservice.models.Token;
 import com.example.userservice.models.User;
 import com.example.userservice.services.UserService;
+import lombok.Getter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/users")
@@ -30,12 +26,41 @@ public class UserController {
         return new ResponseEntity<>(UserDto.fromUser(user), HttpStatus.OK);
     }
     @PostMapping("/login")
-    private Token login(@RequestBody LoginRequestDto requestUserDto){
-        return null;
+    private ResponseEntity<LoginResponseToken> login(@RequestBody LoginRequestDto requestUserDto) throws InvalidPasswordException {
+        ResponseEntity<LoginResponseToken> response;
+        try {
+            Token token = userService.login(requestUserDto.getEmail(),requestUserDto.getPassword());
+            LoginResponseToken loginResponseToken = new LoginResponseToken();
+            loginResponseToken.setToken(token);
+            response= new ResponseEntity<>(loginResponseToken,HttpStatus.OK);
+        }
+        catch (Exception e){
+            response= new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
+        }
+
+        return response;
     }
     @PostMapping("/logout")
     private ResponseEntity<Void> signOut(@RequestBody LogoutRequestDto requestUserDto){
-        return null;
+        try {
+            userService.logout(requestUserDto.getToken());
+            return new ResponseEntity<>(HttpStatus.OK);
+        }
+        catch (Exception e){
+            return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
+        }
+    }
+    @GetMapping("/validate/{token}")
+    private UserDto validate(@PathVariable String token){
+        ResponseEntity<UserDto> response;
+        //token present or not
+        try{
+            User user = userService.validateToken(token);
+            return UserDto.fromUser(user);
+        }
+        catch (Exception e){
+            return null;
+        }
     }
 
 }

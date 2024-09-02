@@ -16,5 +16,5 @@ public abstract class BaseModel {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private Date deletedAt;
+    private boolean deleted;
 }
