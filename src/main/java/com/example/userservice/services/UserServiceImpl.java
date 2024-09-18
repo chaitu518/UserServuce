@@ -1,10 +1,14 @@
 package com.example.userservice.services;
 
+import com.example.userservice.KafkaConfig;
+import com.example.userservice.dtos.UserKafkaDto;
 import com.example.userservice.exceptions.InvalidPasswordException;
 import com.example.userservice.models.Token;
 import com.example.userservice.models.User;
 import com.example.userservice.repositories.TokenRepository;
 import com.example.userservice.repositories.UserRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -21,13 +25,17 @@ public class UserServiceImpl implements UserService {
     private UserRepository userRepository;
     private BCryptPasswordEncoder bCryptPasswordEncoder;
     private TokenRepository tokenRepository;
-    public UserServiceImpl(UserRepository userRepository, BCryptPasswordEncoder bCryptPasswordEncoder,TokenRepository tokenRepository) {
+    private KafkaConfig kafkaConfig;
+    private ObjectMapper objectMapper;
+    public UserServiceImpl(UserRepository userRepository, BCryptPasswordEncoder bCryptPasswordEncoder,TokenRepository tokenRepository,KafkaConfig kafkaConfig,ObjectMapper objectMapper) {
         this.userRepository = userRepository;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
         this.tokenRepository = tokenRepository;
+        this.kafkaConfig = kafkaConfig;
+        this.objectMapper = objectMapper;
     }
     @Override
-    public User signUp(String name, String email, String password) {
+    public User signUp(String name, String email, String password) throws JsonProcessingException {
 
         Optional<User> userOptional = userRepository.findByEmail(email);
         if (userOptional.isPresent()) {
@@ -37,6 +45,12 @@ public class UserServiceImpl implements UserService {
         user.setName(name);
         user.setEmail(email);
         user.setHashedPassword(bCryptPasswordEncoder.encode(password));
+        UserKafkaDto userKafkaDto = new UserKafkaDto();
+        userKafkaDto.setTo(user.getEmail());
+        userKafkaDto.setFrom("tempm6176@gmail.com");
+        userKafkaDto.setSub("Welcome to Universal shopping");
+        userKafkaDto.setMessage("Thank you for registering user");
+        kafkaConfig.sendMessage("sendEmail",objectMapper.writeValueAsString(userKafkaDto));
         return userRepository.save(user);
     }
 

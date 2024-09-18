@@ -5,6 +5,7 @@ import com.example.userservice.exceptions.InvalidPasswordException;
 import com.example.userservice.models.Token;
 import com.example.userservice.models.User;
 import com.example.userservice.services.UserService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +22,7 @@ public class UserController {
 
     }
     @PostMapping("/signup")
-    private ResponseEntity<UserDto> signUp(@RequestBody UserRequestDto requestUserDto){
+    private ResponseEntity<UserDto> signUp(@RequestBody UserRequestDto requestUserDto) throws JsonProcessingException {
         User user = userService.signUp(requestUserDto.getName(),requestUserDto.getEmail(),requestUserDto.getPassword());
         return new ResponseEntity<>(UserDto.fromUser(user), HttpStatus.OK);
     }
